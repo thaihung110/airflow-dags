@@ -360,15 +360,15 @@ with DAG(
     fact_ohlcv_daily_builder = spark_application_task(
         "fact-ohlcv-daily-builder-spark-application.yaml"
     )
-    rule_engine_context_builder = spark_application_task(
-        "rule-engine-context-builder-spark-application.yaml"
-    )
+    # rule_engine_context_builder = spark_application_task(
+    #     "rule-engine-context-builder-spark-application.yaml"
+    # )
 
     (
         ohlcv_daily_loader
         >> ohlcv_daily_cleaner
         >> fact_ohlcv_daily_builder
-        >> rule_engine_context_builder
+        # >> rule_engine_context_builder
     )
 
 # ---------------------------------------------------------------------------

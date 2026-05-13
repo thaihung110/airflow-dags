@@ -1,0 +1,153 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: ohlcv-daily-cleaner
+  namespace: stock-anomaly-detection
+spec:
+  type: Scala
+  mode: cluster
+  image: "hungvt0110/ohlcv-daily-cleaner:v0.2"
+  imagePullPolicy: Always
+  mainClass: com.stockanomalydetection.ohlcvcleaner.OhlcvDailyCleaner
+  mainApplicationFile: "local:///opt/spark/jars/ohlcv-daily-cleaner-assembly-1.0.0.jar"
+  sparkVersion: "3.5.1"
+
+  sparkConf:
+    # -------------------------------------------------------------------------
+    # 1) SQL extensions and catalog routing
+    # -------------------------------------------------------------------------
+    "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+    "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
+    "spark.sql.catalog.spark_catalog.type": "in-memory"
+    "spark.sql.defaultCatalog": "gravitino_catalog"
+
+    # -------------------------------------------------------------------------
+    # 2) Spark execution tuning
+    # -------------------------------------------------------------------------
+    "spark.sql.adaptive.enabled": "true"
+    "spark.sql.adaptive.coalescePartitions.enabled": "true"
+    "spark.sql.adaptive.advisoryPartitionSizeInBytes": "134217728"
+    # Moderate parallelism — ~500 symbols × 20 years of daily rows
+    "spark.sql.shuffle.partitions": "8"
+    "spark.default.parallelism": "4"
+
+    # -------------------------------------------------------------------------
+    # 3) Iceberg write behaviour
+    # -------------------------------------------------------------------------
+    "spark.sql.iceberg.distribution-mode": "hash"
+    "spark.sql.iceberg.advisory-partition-size": "134217728"
+    # Enable dynamic partition overwrite for idempotent daily re-runs
+    "spark.sql.iceberg.dynamic-partition-overwrite.enabled": "true"
+
+    # -------------------------------------------------------------------------
+    # 4) S3A / MinIO filesystem
+    # -------------------------------------------------------------------------
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+
+    # -------------------------------------------------------------------------
+    # 5) Data quality compatibility
+    # -------------------------------------------------------------------------
+    "spark.sql.iceberg.check-nullability": "false"
+
+  restartPolicy:
+    type: Never
+
+  driver:
+    cores: 1
+    memory: "2g"
+    memoryOverhead: "512m"
+    serviceAccount: spark
+    env:
+      - name: GRAVITINO_URI
+        value: "http://openhouse-gravitino:9001"
+      - name: MINIO_ENDPOINT
+        value: "http://openhouse-minio:9000"
+      - name: ICEBERG_WAREHOUSE
+        value: "silver"
+      - name: GRAVITINO_OAUTH_SERVER_URI
+        value: "http://openhouse-keycloak"
+      - name: GRAVITINO_OAUTH_TOKEN_PATH
+        value: "realms/iceberg/protocol/openid-connect/token"
+      - name: GRAVITINO_OAUTH_SCOPE
+        value: "gravitino"
+      - name: INPUT_TABLE
+        value: "gravitino_catalog.raw.raw_ohlcv_daily"
+      - name: OUTPUT_TABLE
+        value: "gravitino_catalog.normalized.ohlcv_daily"
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: GRAVITINO_OAUTH_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: GRAVITINO_OAUTH_CLIENT_SECRET
+    labels:
+      app.kubernetes.io/component: driver
+      app.kubernetes.io/name: ohlcv-daily-cleaner
+
+  executor:
+    instances: 1
+    cores: 2
+    memory: "2g"
+    memoryOverhead: "512m"
+    env:
+      - name: GRAVITINO_URI
+        value: "http://openhouse-gravitino:9001"
+      - name: MINIO_ENDPOINT
+        value: "http://openhouse-minio:9000"
+      - name: ICEBERG_WAREHOUSE
+        value: "silver"
+      - name: GRAVITINO_OAUTH_SERVER_URI
+        value: "http://openhouse-keycloak"
+      - name: GRAVITINO_OAUTH_TOKEN_PATH
+        value: "realms/iceberg/protocol/openid-connect/token"
+      - name: GRAVITINO_OAUTH_SCOPE
+        value: "gravitino"
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: GRAVITINO_OAUTH_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: GRAVITINO_OAUTH_CLIENT_SECRET
+    labels:
+      app.kubernetes.io/component: executor
+      app.kubernetes.io/name: ohlcv-daily-cleaner
