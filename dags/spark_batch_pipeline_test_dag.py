@@ -37,7 +37,7 @@ from kubernetes_asyncio import config as async_config
 logger = logging.getLogger("airflow.task")
 
 MARKET_TZ = pendulum.timezone("UTC")
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 SPARK_MANIFEST_DIR = REPO_ROOT / "spark-application" / "k8s"
 SPARK_HISTORY_HOST = "https://openhouse.spark-history.test"
 
