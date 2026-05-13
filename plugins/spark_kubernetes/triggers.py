@@ -28,7 +28,7 @@ class SparkLifecycleTrigger(BaseTrigger):
 
     async def run(self):
         try:
-            await async_config.load_incluster_config()
+            async_config.load_incluster_config()
         except Exception:
             await async_config.load_kube_config()
 
