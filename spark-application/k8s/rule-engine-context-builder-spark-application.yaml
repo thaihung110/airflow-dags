@@ -8,6 +8,7 @@ spec:
   mode: cluster
   image: "hungvt0110/rule-engine-context-builder:v0.1"
   imagePullPolicy: Always
+  timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.ruleenginecontext.RuleEngineContextBuilder
   mainApplicationFile: "local:///opt/spark/jars/rule-engine-context-builder-assembly-1.0.0.jar"
   sparkVersion: "3.5.1"

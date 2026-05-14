@@ -8,6 +8,7 @@ spec:
   mode: cluster
   image: "hungvt0110/fact-ohlcv-daily-builder:v0.2"
   imagePullPolicy: Always
+  timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.factohlcv.FactOhlcvDailyBuilder
   mainApplicationFile: "local:///opt/spark/jars/fact-ohlcv-daily-builder-assembly-1.0.0.jar"
   sparkVersion: "3.5.1"

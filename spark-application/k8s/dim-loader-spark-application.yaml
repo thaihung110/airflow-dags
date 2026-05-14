@@ -8,6 +8,7 @@ spec:
   mode: cluster
   image: "hungvt0110/dim-loader:v0.5"
   imagePullPolicy: Always
+  timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.dimloader.DimLoaderApp
   mainApplicationFile: "local:///opt/spark/jars/dim-loader-assembly-1.0.0.jar"
   sparkVersion: "3.5.1"

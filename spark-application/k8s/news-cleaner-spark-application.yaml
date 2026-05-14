@@ -8,6 +8,7 @@ spec:
   mode: cluster
   image: "hungvt0110/news-cleaner:v0.3"
   imagePullPolicy: Always
+  timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.newscleaner.NewsCleanerMain
   mainApplicationFile: "local:///opt/spark/jars/news-cleaner-assembly-1.0.0.jar"
   sparkVersion: "3.5.1"

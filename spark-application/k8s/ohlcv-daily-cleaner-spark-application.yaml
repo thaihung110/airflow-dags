@@ -8,6 +8,7 @@ spec:
   mode: cluster
   image: "hungvt0110/ohlcv-daily-cleaner:v0.2"
   imagePullPolicy: Always
+  timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.ohlcvcleaner.OhlcvDailyCleaner
   mainApplicationFile: "local:///opt/spark/jars/ohlcv-daily-cleaner-assembly-1.0.0.jar"
   sparkVersion: "3.5.1"
