@@ -9,14 +9,16 @@ from airflow.providers.cncf.kubernetes.hooks.kubernetes import KubernetesHook
 from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
     SparkKubernetesOperator,
 )
-
+from airflow.utils.task_group import TaskGroup
 from spark_kubernetes.sensors import SparkLifecycleSensor
 
 logger = logging.getLogger("airflow.task")
 
 # plugins/spark_kubernetes/operators.py → parents[2] = repo root
 # repo root contains spark-application/k8s/
-SPARK_MANIFEST_DIR = Path(__file__).resolve().parents[2] / "spark-application" / "k8s"
+SPARK_MANIFEST_DIR = (
+    Path(__file__).resolve().parents[2] / "spark-application" / "k8s"
+)
 
 
 class DictSparkKubernetesOperator(SparkKubernetesOperator):
@@ -67,8 +69,9 @@ def load_spark_manifest(
 
 
 def delete_spark_job_on_failure(context):
-    task_id = context["task"].task_id
-    submit_task_id = task_id.replace("monitor_", "submit_", 1)
+    task_id = context["task"].task_id  # e.g. "ohlcv_daily_loader.monitor"
+    group_prefix, _, _ = task_id.rpartition(".")
+    submit_task_id = f"{group_prefix}.submit" if group_prefix else "submit"
     job_details = context["ti"].xcom_pull(
         task_ids=submit_task_id, key="return_value"
     )
@@ -91,34 +94,40 @@ def delete_spark_job_on_failure(context):
         logger.error("Failed to delete SparkApplication %s: %s", name, e)
 
 
-def spark_application_task(manifest_filename: str):
-    """Build load → submit → monitor task group for one Spark manifest."""
-    task_name = manifest_filename.removesuffix("-spark-application.yaml")
-    task_name = task_name.replace("-", "_")
+def spark_application_task(manifest_filename: str) -> TaskGroup:
+    """Build load → submit → monitor TaskGroup for one Spark manifest.
 
-    manifest = load_spark_manifest.override(
-        task_id=f"load_{task_name}_manifest"
-    )(
-        manifest_filename=manifest_filename,
-        run_suffix="{{ ts_nodash | lower }}",
-    )
+    Returning a TaskGroup instead of a bare task ensures that >> chaining
+    between groups gates the entire load/submit/monitor sequence, not just
+    the monitor task, so Spark apps are submitted strictly sequentially.
+    """
+    group_id = manifest_filename.removesuffix(
+        "-spark-application.yaml"
+    ).replace("-", "_")
 
-    submit = DictSparkKubernetesOperator(
-        task_id=f"submit_{task_name}",
-        kubernetes_conn_id="kubernetes_default",
-        namespace="{{ ti.xcom_pull(task_ids='load_"
-        + task_name
-        + "_manifest')['metadata']['namespace'] }}",
-        application_file=manifest,
-        do_xcom_push=True,
-    )
+    with TaskGroup(group_id=group_id) as group:
+        manifest = load_spark_manifest.override(task_id="load_manifest")(
+            manifest_filename=manifest_filename,
+            run_suffix="{{ ts_nodash | lower }}",
+        )
 
-    monitor = SparkLifecycleSensor(
-        task_id=f"monitor_{task_name}",
-        name=submit.output["job_name"],
-        namespace=submit.output["namespace"],
-        on_failure_callback=delete_spark_job_on_failure,
-    )
+        submit = DictSparkKubernetesOperator(
+            task_id="submit",
+            kubernetes_conn_id="kubernetes_default",
+            namespace="{{ ti.xcom_pull(task_ids='"
+            + group_id
+            + ".load_manifest')['metadata']['namespace'] }}",
+            application_file=manifest,
+            do_xcom_push=True,
+        )
 
-    manifest >> submit >> monitor
-    return monitor
+        monitor = SparkLifecycleSensor(
+            task_id="monitor",
+            name=submit.output["job_name"],
+            namespace=submit.output["namespace"],
+            on_failure_callback=delete_spark_job_on_failure,
+        )
+
+        manifest >> submit >> monitor
+
+    return group
