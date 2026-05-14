@@ -55,8 +55,8 @@ spec:
 
   driver:
     cores: 1
-    memory: "2g"
-    memoryOverhead: "512m"
+    memory: "1g"
+    memoryOverhead: "256m"
     serviceAccount: spark
     env:
       - name: GRAVITINO_URI
@@ -111,8 +111,8 @@ spec:
   executor:
     instances: 1
     cores: 2
-    memory: "4g"
-    memoryOverhead: "512m"
+    memory: "3g"
+    memoryOverhead: "256m"
     env:
       - name: GRAVITINO_URI
         value: "http://openhouse-gravitino:9001"
