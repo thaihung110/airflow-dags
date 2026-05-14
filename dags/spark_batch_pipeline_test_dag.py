@@ -15,6 +15,10 @@ default_args = {
 #
 # Production order: loader → cleaner → fact_builder → rule_engine_context_builder
 # TimeSensors removed. rule_engine_context_builder commented out for partial testing.
+#
+# PREREQUISITE: spark_batch_weekly_dimension_pipeline_test must have run successfully
+# at least once before uncommenting rule_engine_context_builder. dim_symbol must be
+# populated or rule_engine_context_builder will fail with a clear error message.
 # ---------------------------------------------------------------------------
 
 with DAG(
