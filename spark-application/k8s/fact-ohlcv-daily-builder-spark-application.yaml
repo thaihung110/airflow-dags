@@ -27,9 +27,9 @@ spec:
     "spark.sql.adaptive.enabled": "true"
     "spark.sql.adaptive.coalescePartitions.enabled": "true"
     "spark.sql.adaptive.advisoryPartitionSizeInBytes": "134217728"
-    # Higher parallelism — 500 symbols × 20yr × Window functions are shuffle-heavy
-    "spark.sql.shuffle.partitions": "32"
-    "spark.default.parallelism": "16"
+    # AQE handles coalescing; reduced to match executor cores (1 instance × 2 cores)
+    "spark.sql.shuffle.partitions": "16"
+    "spark.default.parallelism": "8"
 
     # -------------------------------------------------------------------------
     # 3) Iceberg write behaviour
@@ -54,9 +54,9 @@ spec:
     type: Never
 
   driver:
-    cores: 2
-    memory: "4g"
-    memoryOverhead: "1g"
+    cores: 1
+    memory: "2g"
+    memoryOverhead: "512m"
     serviceAccount: spark
     env:
       - name: GRAVITINO_URI
@@ -109,10 +109,10 @@ spec:
       app.kubernetes.io/name: fact-ohlcv-daily-builder
 
   executor:
-    instances: 2
-    cores: 4
-    memory: "6g"
-    memoryOverhead: "1g"
+    instances: 1
+    cores: 2
+    memory: "4g"
+    memoryOverhead: "512m"
     env:
       - name: GRAVITINO_URI
         value: "http://openhouse-gravitino:9001"
