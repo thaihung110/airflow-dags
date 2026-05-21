@@ -24,6 +24,7 @@ with DAG(
     wait_0630 = TimeSensor(task_id="wait_until_0630", target_time=time(6, 30))
     wait_0700 = TimeSensor(task_id="wait_until_0700", target_time=time(7, 0))
     wait_0715 = TimeSensor(task_id="wait_until_0715", target_time=time(7, 15))
+    wait_0730 = TimeSensor(task_id="wait_until_0730", target_time=time(7, 30))
 
     ohlcv_daily_loader = spark_application_task(
         "ohlcv-daily-loader-spark-application.yaml"
@@ -37,10 +38,14 @@ with DAG(
     rule_engine_context_builder = spark_application_task(
         "rule-engine-context-builder-spark-application.yaml"
     )
+    sync_custom_alerts = spark_application_task(
+        "sync-custom-alerts-spark-application.yaml"
+    )
 
     ohlcv_daily_loader >> wait_0630 >> ohlcv_daily_cleaner
     ohlcv_daily_cleaner >> wait_0700 >> fact_ohlcv_daily_builder
     fact_ohlcv_daily_builder >> wait_0715 >> rule_engine_context_builder
+    rule_engine_context_builder >> wait_0730 >> sync_custom_alerts
 
 
 with DAG(

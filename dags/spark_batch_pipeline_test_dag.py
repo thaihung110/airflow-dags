@@ -14,11 +14,16 @@ default_args = {
 # DAG 1 — OHLCV daily pipeline (test)
 #
 # Production order: loader → cleaner → fact_builder → rule_engine_context_builder
+#                   → sync_custom_alerts
 # TimeSensors removed. rule_engine_context_builder commented out for partial testing.
 #
 # PREREQUISITE: spark_batch_weekly_dimension_pipeline_test must have run successfully
 # at least once before uncommenting rule_engine_context_builder. dim_symbol must be
 # populated or rule_engine_context_builder will fail with a clear error message.
+#
+# sync_custom_alerts PREREQUISITE: PostgreSQL user_alert_events table must exist and
+# the rule-engine must have written at least one event row, or the job will succeed
+# with 0 rows synced (watermark stays at epoch — safe to run even on empty table).
 # ---------------------------------------------------------------------------
 
 with DAG(
@@ -41,12 +46,16 @@ with DAG(
     rule_engine_context_builder = spark_application_task(
         "rule-engine-context-builder-spark-application.yaml"
     )
+    sync_custom_alerts = spark_application_task(
+        "sync-custom-alerts-spark-application.yaml"
+    )
 
     (
         ohlcv_daily_loader
         >> ohlcv_daily_cleaner
         >> fact_ohlcv_daily_builder
         >> rule_engine_context_builder
+        >> sync_custom_alerts
     )
 
 # ---------------------------------------------------------------------------

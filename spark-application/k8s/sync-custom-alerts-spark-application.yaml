@@ -1,0 +1,135 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: sync-custom-alerts
+  namespace: stock-anomaly-detection
+spec:
+  type: Scala
+  mode: cluster
+  image: "hungvt0110/sync-custom-alerts:v0.1"
+  imagePullPolicy: Always
+  timeToLiveSeconds: 3600
+  mainClass: com.stockanomalydetection.synccustomalerts.SyncCustomAlerts
+  mainApplicationFile: "local:///opt/spark/jars/sync-custom-alerts-assembly-1.0.0.jar"
+  sparkVersion: "3.5.1"
+
+  sparkConf:
+    "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+    "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
+    "spark.sql.catalog.spark_catalog.type": "in-memory"
+    "spark.sql.defaultCatalog": "gravitino_catalog"
+
+    "spark.sql.session.timeZone": "UTC"
+
+    "spark.sql.adaptive.enabled": "true"
+    "spark.sql.adaptive.coalescePartitions.enabled": "true"
+    "spark.sql.adaptive.advisoryPartitionSizeInBytes": "134217728"
+    "spark.sql.shuffle.partitions": "4"
+    "spark.default.parallelism": "2"
+
+    "spark.sql.iceberg.distribution-mode": "hash"
+    "spark.sql.iceberg.advisory-partition-size": "134217728"
+
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+
+    "spark.sql.iceberg.check-nullability": "false"
+
+  restartPolicy:
+    type: Never
+
+  driver:
+    cores: 1
+    memory: "512m"
+    memoryOverhead: "256m"
+    serviceAccount: spark
+    env:
+      - name: GRAVITINO_URI
+        value: "http://openhouse-gravitino:9001"
+      - name: MINIO_ENDPOINT
+        value: "http://openhouse-minio:9000"
+      - name: ICEBERG_WAREHOUSE
+        value: "gold"
+      - name: GRAVITINO_OAUTH_SERVER_URI
+        value: "http://openhouse-keycloak"
+      - name: GRAVITINO_OAUTH_TOKEN_PATH
+        value: "realms/iceberg/protocol/openid-connect/token"
+      - name: GRAVITINO_OAUTH_SCOPE
+        value: "gravitino"
+      - name: JDBC_URL
+        value: "jdbc:postgresql://openhouse-postgresql-primary:5432/stock_anomaly"
+      - name: PG_USER
+        value: "stock_user"
+      - name: FACT_TABLE
+        value: "gravitino_catalog.gold.fact_alert_history"
+      - name: WATERMARK_JOB_NAME
+        value: "sync-custom-alerts"
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: GRAVITINO_OAUTH_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: GRAVITINO_OAUTH_CLIENT_SECRET
+      - name: PG_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: PG_PASSWORD
+    labels:
+      app.kubernetes.io/component: driver
+      app.kubernetes.io/name: sync-custom-alerts
+
+  executor:
+    instances: 1
+    cores: 1
+    memory: "512m"
+    memoryOverhead: "256m"
+    env:
+      - name: MINIO_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: MINIO_SECRET_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_ACCESS_KEY
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: MINIO_SECRET_KEY
+      - name: GRAVITINO_OAUTH_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: spark-app-secrets
+            key: GRAVITINO_OAUTH_CLIENT_SECRET
+    labels:
+      app.kubernetes.io/component: executor
+      app.kubernetes.io/name: sync-custom-alerts
