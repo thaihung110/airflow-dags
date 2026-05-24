@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/ohlcv-daily-loader:v0.2"
+  image: "hungvt0110/ohlcv-daily-loader:v0.3"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.ohlcvloader.OhlcvDailyLoader
@@ -17,40 +17,49 @@ spec:
     # -------------------------------------------------------------------------
     # 1) SQL extensions and catalog routing
     # -------------------------------------------------------------------------
-    # Iceberg SQL extension for MERGE INTO and Iceberg DDL support.
     "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-    # Use Iceberg session catalog instead of Hive metastore-backed spark_catalog.
     "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
     "spark.sql.catalog.spark_catalog.type": "in-memory"
-    # Make gravitino catalog the default.
     "spark.sql.defaultCatalog": "gravitino_catalog"
 
     # -------------------------------------------------------------------------
     # 2) Spark execution tuning
     # -------------------------------------------------------------------------
-    # Adaptive Query Execution
     "spark.sql.adaptive.enabled": "true"
     "spark.sql.adaptive.coalescePartitions.enabled": "true"
     "spark.sql.adaptive.advisoryPartitionSizeInBytes": "134217728"
-    # Baseline parallelism for small cluster
+    # MERGE INTO on Iceberg generates a shuffle; 4 partitions matches 1 executor core.
     "spark.sql.shuffle.partitions": "4"
-    "spark.default.parallelism": "2"
+    "spark.default.parallelism": "4"
 
     # -------------------------------------------------------------------------
-    # 3) Iceberg write behavior
+    # 3) JVM memory tuning — prevent driver OOM during MERGE INTO plan caching
+    # -------------------------------------------------------------------------
+    # Reserve 40% of driver JVM heap for execution (MERGE INTO shuffle).
+    # The remaining 60% is available for storage + user data (the row buffer).
+    "spark.memory.fraction": "0.6"
+    "spark.memory.storageFraction": "0.3"
+
+    # -------------------------------------------------------------------------
+    # 4) Iceberg write behavior
     # -------------------------------------------------------------------------
     "spark.sql.iceberg.distribution-mode": "hash"
     "spark.sql.iceberg.advisory-partition-size": "134217728"
 
     # -------------------------------------------------------------------------
-    # 4) S3A / MinIO filesystem
+    # 5) S3A / MinIO filesystem
     # -------------------------------------------------------------------------
     "spark.hadoop.fs.s3a.path.style.access": "true"
     "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
     "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+    # Reduce S3A read-ahead buffer from 64 MB default to 8 MB to save heap on
+    # executor during Iceberg MERGE INTO file scans.
+    "spark.hadoop.fs.s3a.readahead.range": "8388608"
+    # Cap S3A connection pool — default 96 is too large for a single-executor job.
+    "spark.hadoop.fs.s3a.connection.maximum": "20"
 
     # -------------------------------------------------------------------------
-    # 5) Data quality compatibility
+    # 6) Data quality compatibility
     # -------------------------------------------------------------------------
     "spark.sql.iceberg.check-nullability": "false"
 
@@ -64,8 +73,8 @@ spec:
 
   driver:
     cores: 1
-    memory: "512m"
-    memoryOverhead: "256m"
+    memory: "1g"
+    memoryOverhead: "512m"
     serviceAccount: spark
     env:
       - name: GRAVITINO_URI
@@ -85,7 +94,7 @@ spec:
       - name: OUTPUT_TABLE
         value: "gravitino_catalog.raw.raw_ohlcv_daily"
       - name: FETCH_BATCH_SIZE
-        value: "50"
+        value: "10"
       - name: BACKFILL_YEARS
         value: "20"
       - name: MINIO_ACCESS_KEY
@@ -124,8 +133,8 @@ spec:
   executor:
     instances: 1
     cores: 1
-    memory: "512m"
-    memoryOverhead: "256m"
+    memory: "1g"
+    memoryOverhead: "512m"
     env:
       - name: GRAVITINO_URI
         value: "http://openhouse-gravitino:9001"
