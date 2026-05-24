@@ -7,7 +7,6 @@ from airflow.models.taskinstance import TaskInstanceKey
 from airflow.providers.cncf.kubernetes.hooks.kubernetes import KubernetesHook
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.context import Context
-
 from spark_kubernetes.triggers import SparkLifecycleTrigger
 
 logger = logging.getLogger("airflow.task")
