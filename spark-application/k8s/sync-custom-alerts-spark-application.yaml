@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/sync-custom-alerts:v0.1"
+  image: "hungvt0110/sync-custom-alerts:v0.2"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.synccustomalerts.SyncCustomAlerts
