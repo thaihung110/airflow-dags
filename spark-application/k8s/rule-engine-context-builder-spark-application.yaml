@@ -22,8 +22,8 @@ spec:
     "spark.sql.adaptive.enabled": "true"
     "spark.sql.adaptive.coalescePartitions.enabled": "true"
     "spark.sql.adaptive.advisoryPartitionSizeInBytes": "134217728"
-    "spark.sql.shuffle.partitions": "8"
-    "spark.default.parallelism": "4"
+    "spark.sql.shuffle.partitions": "4"
+    "spark.default.parallelism": "2"
 
     "spark.sql.iceberg.distribution-mode": "hash"
     "spark.sql.iceberg.advisory-partition-size": "134217728"
@@ -39,9 +39,9 @@ spec:
     type: Never
 
   driver:
-    cores: 2
-    memory: "2g"
-    memoryOverhead: "512m"
+    cores: 1
+    memory: "1g"
+    memoryOverhead: "256m"
     serviceAccount: spark
     env:
       - name: GRAVITINO_URI
@@ -62,6 +62,8 @@ spec:
         value: "gravitino_catalog.gold.dim_symbol"
       - name: OUTPUT_TABLE
         value: "gravitino_catalog.gold.rule_engine_context"
+      - name: AS_OF_DATE_KEY
+        value: "20260522"
       - name: MINIO_ACCESS_KEY
         valueFrom:
           secretKeyRef:
@@ -93,9 +95,9 @@ spec:
 
   executor:
     instances: 1
-    cores: 2
-    memory: "4g"
-    memoryOverhead: "512m"
+    cores: 1
+    memory: "1g"
+    memoryOverhead: "256m"
     env:
       - name: GRAVITINO_URI
         value: "http://openhouse-gravitino:9001"
