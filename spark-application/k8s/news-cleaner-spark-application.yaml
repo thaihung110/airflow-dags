@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/news-cleaner:v0.3"
+  image: "hungvt0110/news-cleaner:v0.4"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.newscleaner.NewsCleanerMain
@@ -20,7 +20,7 @@ spec:
     "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
     "spark.sql.catalog.spark_catalog.type": "in-memory"
-    "spark.sql.defaultCatalog": "gravitino_catalog"
+    "spark.sql.defaultCatalog": "gravitino_silver"
 
     # -------------------------------------------------------------------------
     # 2) Spark execution tuning
@@ -64,8 +64,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "silver"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH
@@ -73,9 +71,9 @@ spec:
       - name: GRAVITINO_OAUTH_SCOPE
         value: "gravitino"
       - name: INPUT_TABLE
-        value: "gravitino_catalog.raw.raw_news_articles"
+        value: "gravitino_bronze.raw.raw_news_articles"
       - name: OUTPUT_TABLE
-        value: "gravitino_catalog.normalized.news_clean"
+        value: "gravitino_silver.normalized.news_clean"
       - name: MINIO_ACCESS_KEY
         valueFrom:
           secretKeyRef:
@@ -115,8 +113,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "silver"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH

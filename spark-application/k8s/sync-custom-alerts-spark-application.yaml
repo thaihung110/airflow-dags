@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/sync-custom-alerts:v0.2"
+  image: "hungvt0110/sync-custom-alerts:v0.3"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.synccustomalerts.SyncCustomAlerts
@@ -17,7 +17,7 @@ spec:
     "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
     "spark.sql.catalog.spark_catalog.type": "in-memory"
-    "spark.sql.defaultCatalog": "gravitino_catalog"
+    "spark.sql.defaultCatalog": "gravitino_gold"
 
     "spark.sql.session.timeZone": "UTC"
 
@@ -49,8 +49,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "gold"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH
@@ -62,7 +60,7 @@ spec:
       - name: PG_USER
         value: "stock_user"
       - name: FACT_TABLE
-        value: "gravitino_catalog.gold.fact_alert_history"
+        value: "gravitino_gold.gold.fact_alert_history"
       - name: WATERMARK_JOB_NAME
         value: "sync-custom-alerts"
       - name: MINIO_ACCESS_KEY

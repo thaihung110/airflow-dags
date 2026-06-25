@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/company-info-loader:v0.2"
+  image: "hungvt0110/company-info-loader:v0.3"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.companyinfo.CompanyInfoLoader
@@ -22,8 +22,8 @@ spec:
     # Use in-memory session catalog — Gravitino REST catalog is registered separately.
     "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
     "spark.sql.catalog.spark_catalog.type": "in-memory"
-    # Make gravitino_catalog the default so MERGE INTO / CREATE TABLE resolve without prefix.
-    "spark.sql.defaultCatalog": "gravitino_catalog"
+    # Make gravitino_bronze the default so MERGE INTO / CREATE TABLE resolve without prefix.
+    "spark.sql.defaultCatalog": "gravitino_bronze"
 
     # -------------------------------------------------------------------------
     # 2) Spark execution tuning
@@ -73,8 +73,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "bronze"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH
@@ -84,7 +82,7 @@ spec:
       - name: SYMBOLS_FILE
         value: "/tmp/symbols.txt"
       - name: OUTPUT_TABLE
-        value: "gravitino_catalog.raw.raw_company_info"
+        value: "gravitino_bronze.raw.raw_company_info"
       - name: FINNHUB_API_KEY
         valueFrom:
           secretKeyRef:
@@ -133,8 +131,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "bronze"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH

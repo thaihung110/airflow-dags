@@ -6,7 +6,7 @@ metadata:
 spec:
   type: Scala
   mode: cluster
-  image: "hungvt0110/dim-loader:v0.5"
+  image: "hungvt0110/dim-loader:v0.6"
   imagePullPolicy: Always
   timeToLiveSeconds: 3600
   mainClass: com.stockanomalydetection.dimloader.DimLoaderApp
@@ -20,7 +20,7 @@ spec:
     "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     "spark.sql.catalog.spark_catalog": "org.apache.iceberg.spark.SparkSessionCatalog"
     "spark.sql.catalog.spark_catalog.type": "in-memory"
-    "spark.sql.defaultCatalog": "gravitino_catalog"
+    "spark.sql.defaultCatalog": "gravitino_gold"
 
     # -------------------------------------------------------------------------
     # 2) Spark execution tuning — small data, all dims < 15k rows
@@ -62,8 +62,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "gold"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH
@@ -71,9 +69,9 @@ spec:
       - name: GRAVITINO_OAUTH_SCOPE
         value: "gravitino"
       - name: INPUT_TABLE
-        value: "gravitino_catalog.raw.raw_company_info"
+        value: "gravitino_bronze.raw.raw_company_info"
       - name: OUTPUT_NAMESPACE
-        value: "gravitino_catalog.gold"
+        value: "gravitino_gold.gold"
       - name: MINIO_ACCESS_KEY
         valueFrom:
           secretKeyRef:
@@ -88,7 +86,7 @@ spec:
         valueFrom:
           secretKeyRef:
             name: spark-app-secrets
-            key: MINIO_ACCESS_KEY
+            key: MINIO_SECRET_KEY
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
@@ -113,8 +111,6 @@ spec:
         value: "http://openhouse-gravitino:9001"
       - name: MINIO_ENDPOINT
         value: "http://openhouse-minio:9000"
-      - name: ICEBERG_WAREHOUSE
-        value: "gold"
       - name: GRAVITINO_OAUTH_SERVER_URI
         value: "http://openhouse-keycloak"
       - name: GRAVITINO_OAUTH_TOKEN_PATH
@@ -122,9 +118,9 @@ spec:
       - name: GRAVITINO_OAUTH_SCOPE
         value: "gravitino"
       - name: INPUT_TABLE
-        value: "gravitino_catalog.raw.raw_company_info"
+        value: "gravitino_bronze.raw.raw_company_info"
       - name: OUTPUT_NAMESPACE
-        value: "gravitino_catalog.gold"
+        value: "gravitino_gold.gold"
       - name: MINIO_ACCESS_KEY
         valueFrom:
           secretKeyRef:
@@ -139,7 +135,7 @@ spec:
         valueFrom:
           secretKeyRef:
             name: spark-app-secrets
-            key: MINIO_ACCESS_KEY
+            key: MINIO_SECRET_KEY
       - name: AWS_SECRET_ACCESS_KEY
         valueFrom:
           secretKeyRef:
