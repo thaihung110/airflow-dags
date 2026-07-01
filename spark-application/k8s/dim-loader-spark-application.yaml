@@ -50,7 +50,9 @@ spec:
     "spark.sql.iceberg.check-nullability": "false"
 
   restartPolicy:
-    type: Never
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
 
   driver:
     cores: 1

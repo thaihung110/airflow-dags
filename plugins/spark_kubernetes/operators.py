@@ -68,32 +68,6 @@ def load_spark_manifest(
     return body
 
 
-def delete_spark_job_on_failure(context):
-    task_id = context["task"].task_id  # e.g. "ohlcv_daily_loader.monitor"
-    group_prefix, _, _ = task_id.rpartition(".")
-    submit_task_id = f"{group_prefix}.submit" if group_prefix else "submit"
-    job_details = context["ti"].xcom_pull(
-        task_ids=submit_task_id, key="return_value"
-    )
-    if not job_details:
-        return
-
-    name = job_details.get("job_name")
-    namespace = job_details.get("namespace")
-    try:
-        hook = KubernetesHook(conn_id="kubernetes_default")
-        hook.delete_custom_object(
-            group="sparkoperator.k8s.io",
-            version="v1beta2",
-            namespace=namespace,
-            plural="sparkapplications",
-            name=name,
-        )
-        logger.info("Deleted SparkApplication after failure: %s", name)
-    except Exception as e:
-        logger.error("Failed to delete SparkApplication %s: %s", name, e)
-
-
 def spark_application_task(manifest_filename: str) -> TaskGroup:
     """Build load → submit → monitor TaskGroup for one Spark manifest.
 
@@ -121,11 +95,14 @@ def spark_application_task(manifest_filename: str) -> TaskGroup:
             do_xcom_push=True,
         )
 
+        # No on_failure_callback here: leave the failed SparkApplication CR in
+        # place so its driver/executor pod logs stay inspectable. The operator
+        # garbage-collects it automatically once `timeToLiveSeconds` (set per
+        # manifest) elapses after the app reaches a terminal state.
         monitor = SparkLifecycleSensor(
             task_id="monitor",
             name=submit.output["job_name"],
             namespace=submit.output["namespace"],
-            on_failure_callback=delete_spark_job_on_failure,
         )
 
         manifest >> submit >> monitor

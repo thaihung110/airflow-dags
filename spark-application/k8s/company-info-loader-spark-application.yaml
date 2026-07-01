@@ -56,7 +56,9 @@ spec:
     "spark.sql.iceberg.check-nullability": "false"
 
   restartPolicy:
-    type: Never
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
 
   volumes:
     - name: symbols-config
