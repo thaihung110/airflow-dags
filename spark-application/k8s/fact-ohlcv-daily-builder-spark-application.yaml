@@ -112,7 +112,7 @@ spec:
   executor:
     instances: 1
     cores: 2
-    memory: "3g"
+    memory: "2g"
     memoryOverhead: "256m"
     env:
       - name: GRAVITINO_URI
